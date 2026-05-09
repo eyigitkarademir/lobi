@@ -153,6 +153,93 @@ function generateServices(profile) {
     if (otherServices.length > 0) services.push({ Other: otherServices });
   }
 
+  // Holidays
+  if (profile.holidays?.length > 0) {
+    const holidayServices = profile.holidays.slice(0, 3).map((h) => ({
+      [h.name]: {
+        icon: "mdi-calendar-star",
+        href: "#",
+        description: h.date,
+      },
+    }));
+    services.push({ "Upcoming Holidays": holidayServices });
+  }
+
+  // Reminders
+  if (profile.reminders?.length > 0) {
+    const reminderServices = profile.reminders.slice(0, 4).map((r) => ({
+      [r.title]: {
+        icon: "mdi-checkbox-marked-circle-outline",
+        href: "#",
+        description: "Reminders",
+      },
+    }));
+    services.push({ Reminders: reminderServices });
+  }
+
+  // World Clocks
+  if (profile.worldClocks?.length > 0) {
+    const clockServices = profile.worldClocks.map((c) => {
+      const now = new Date().toLocaleTimeString("en-US", { timeZone: c.tz, hour: "2-digit", minute: "2-digit", hour12: false });
+      return {
+        [c.city]: {
+          icon: "mdi-clock-outline",
+          href: "#",
+          description: now,
+        },
+      };
+    });
+    services.push({ "World Clocks": clockServices });
+  }
+
+  // Currency
+  if (profile.currency) {
+    const c = profile.currency;
+    const currencyServices = [
+      { [`1 USD = ${c.rate?.toFixed(2)} ${c.local}`]: { icon: "mdi-currency-usd", href: "#", description: "Exchange rate" } },
+    ];
+    if (c.eurRate) {
+      currencyServices.push({ [`1 USD = ${c.eurRate?.toFixed(4)} EUR`]: { icon: "mdi-currency-eur", href: "#", description: "Exchange rate" } });
+    }
+    services.push({ Currency: currencyServices });
+  }
+
+  // Battery
+  if (profile.battery) {
+    const b = profile.battery;
+    const icon = b.percent > 80 ? "mdi-battery-high" : b.percent > 30 ? "mdi-battery-medium" : "mdi-battery-low";
+    services.push({
+      System: [
+        { [`Battery: ${b.percent}%${b.charging ? " (charging)" : ""}`]: { icon, href: "#", description: profile.meta.hostname } },
+      ],
+    });
+  }
+
+  // Spotify
+  if (profile.spotify) {
+    const s = profile.spotify;
+    services.push({
+      "Now Playing": [
+        { [s.track]: { icon: "si-spotify", href: "https://open.spotify.com", description: s.artist } },
+      ],
+    });
+  }
+
+  // Recent Downloads
+  if (profile.downloads?.length > 0) {
+    const dlServices = profile.downloads.slice(0, 3).map((f) => {
+      const sizeStr = f.size > 1048576 ? `${(f.size / 1048576).toFixed(1)} MB` : `${(f.size / 1024).toFixed(0)} KB`;
+      return {
+        [f.name.slice(0, 35)]: {
+          icon: f.isDir ? "mdi-folder" : "mdi-file",
+          href: "#",
+          description: sizeStr,
+        },
+      };
+    });
+    services.push({ "Recent Downloads": dlServices });
+  }
+
   return services;
 }
 
