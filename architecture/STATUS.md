@@ -37,22 +37,33 @@
   - Direction A and C archived to `architecture/brand-explorations/archive/`
   - Math-verified all contrast ratios — AAA on all body text, dark accent gated to fill-only with `--accent-strong` for text use
 
+- [x] **Merge from emrekaraoglu96/homepage** (DEC-013) — scanner + CLI auto-setup imported (7 commits, 14.8k LOC, 16 files):
+  - `src/cli/{setup,generate,scanner}.mjs` — zero-auth local-machine scanner + config generator
+  - `src/widgets/browserhistory/*` + `src/utils/browser-history/*` — auto-discovery widget reading Chrome/Safari/Firefox SQLite
+  - `src/pages/api/browser-history/*` — runtime API routes for browser history
+  - `better-sqlite3` runtime dep added (alongside our `@libsql/client`)
+  - `pnpm-lock.yaml` regenerated cleanly
+  - **Smoke verified:** `pnpm dev` returns HTTP 200 on :3000; `node src/cli/setup.mjs` runs and successfully scans (1041 bookmarks, browser detected, Docker probed)
+  - 3 remotes configured: `origin` (eyigitkarademir/lobi), `upstream` (gethomepage/homepage), `emre` (emrekaraoglu96/homepage)
+
 ## Not Started (next sprint — Lobi divergence layer)
-Specs to be written/refined:
-- LB-01: Database schema + Drizzle setup (already drafted, needs pnpm/fork-context refresh)
-- LB-02: Visual identity — Designer agent produces Lobi DESIGN.md tokens
-- LB-03: Onboarding chat agent (App Router page in `src/app/(onboarding)/`)
-- LB-04: better-auth setup + Google OAuth flow
-- LB-05: First Lobi widget — Gmail unread
-- LB-06: Google Calendar widget
-- LB-07: YouTube subscriptions widget
-- LB-08: Spotify recent/playing widget
-- LB-09: RSS reader with AI summary
-- LB-10: AI search mode
-- LB-11: Drag-drop layout (dnd-kit on top of their grid)
-- LB-12: Templates — Minimalist, Productivity, News Junkie, Creator
-- LB-13: Settings + theme picker
-- LB-14: Deep-link bento (Yemeksepeti / Trendyol / Uber Eats / banks)
+
+**RE-PRIORITIZED post-merge** — scanner CLI now ships local-first dashboard generation, so the order shifts:
+
+- LB-03: **Brand B styling applied to scanner-generated dashboard** (NEW PRIORITY) — currently the scanner output renders in upstream gethomepage chrome; needs DESIGN.md tokens applied via theme override layer
+- LB-01: Database schema + Drizzle (now smaller — only Lobi-specific user state, not config)
+- LB-04: Onboarding chat agent — refines scanner output rather than starts from blank
+- LB-05: better-auth setup + Google OAuth (cloud widgets on top of local-first scan)
+- LB-06: First Lobi cloud widget — Gmail unread
+- LB-07: Google Calendar widget
+- LB-08: YouTube subscriptions widget
+- LB-09: Spotify recent/playing widget
+- LB-10: RSS reader with AI summary (extends/replaces FreshRSS-style upstream widget)
+- LB-11: AI search mode
+- LB-12: Drag-drop layout (dnd-kit on top of their grid)
+- LB-13: Templates — Minimalist, Productivity, News Junkie, Creator
+- LB-14: Settings + theme picker
+- LB-15: Deep-link bento (Yemeksepeti / Trendyol / Uber Eats / banks)
 
 ## Blockers
 None.

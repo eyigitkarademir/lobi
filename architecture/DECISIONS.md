@@ -102,3 +102,30 @@ Each decision uses the DEC-NNN format. Once approved, decisions are locked unles
   - All text-primary/secondary/tertiary tokens verified AAA in both modes
 - **Locked by:** Emre (selection 2026-05-10)
 - **Traces to:** `specs/LB-02-visual-identity.md`, `architecture/brand-explorations/` (B kept, A+C archived), `DESIGN.md` (tokens + voice rules), `public/logo-*.svg`
+
+### DEC-013: Import scanner + CLI auto-setup from emrekaraoglu96/homepage
+- **Date:** 2026-05-10
+- **Status:** approved
+- **Decision:** Merge `emre/dev` (7 commits, ~14.8k LOC, 16 files) into `eyigitkarademir/lobi:dev`. Adds: `src/cli/{setup,generate,scanner}.mjs`, browser history widget + utilities, browser-history API routes. Adds `better-sqlite3` runtime dep alongside our `@libsql/client`.
+- **What this enables:**
+  - Zero-auth local-machine scanning (browser history, bookmarks, Docker, battery, 12 data sources)
+  - Auto-generated gethomepage-compatible config from scan results
+  - Browser history widget surfaces top-visited domains
+  - "30-second to populated dashboard" promise via CLI setup
+- **Alternatives Checked:**
+  - Cherry-pick (commit-by-commit) — rejected: more conflict-resolution per commit with no benefit; 7 commits can't be split logically without losing the OAuth-add/OAuth-remove arc
+  - Selective import (only CLI, not browser history widget) — rejected: the widget surfaces scanner data; without it the scanner output isn't visible
+  - Build from scratch in Lobi — rejected: emre's branch already shipped this with ~14.8k LOC of working code
+- **Rationale:**
+  - Emre had already prototyped this in another session; importing > rebuilding
+  - Lobi's "30-second populated dashboard" promise is largely realized by this CLI — chat onboarding (LB-03) becomes refinement, not the only path to value
+  - Zero-auth approach is local-first; OAuth (LB-04) becomes Lobi's own divergence layer on top
+- **License:** GPL-3.0 (consistent — emre's branch was already a gethomepage fork, same license inheritance)
+- **What was NOT imported:** OAuth integration was added in commit `c0ae2257` and reverted in `bcd7aabd`. Net effect = zero-auth state. Re-adding OAuth becomes Lobi's own work (LB-04 spec, future).
+- **Two SQLite drivers now present** (intentional, documented):
+  - `@libsql/client` — Lobi's user-state DB (async, our LB-01 spec target)
+  - `better-sqlite3` — emre's scanner reads browser history files (sync, native)
+  - Could consolidate later but not blocking
+- **Locked by:** Emre (this session, post-fork)
+- **Traces to:** Merge commit `b600b14b`, `architecture/STATUS.md` updated capability inventory
+- **Future:** LB-03 onboarding chat agent will need to integrate with scanner output (chat agent reviews/refines scanner-generated config rather than starting from blank). LB-04 OAuth adds cloud-service widgets on top of local-first scanner.
