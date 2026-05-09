@@ -21,6 +21,7 @@
     "@kubernetes/client-node": "^1.0.0",
     "@libsql/client": "^0.17.3",
     "better-auth": "^1.6.9",
+    "better-sqlite3": "^12.9.0",
     "classnames": "^2.5.1",
     "compare-versions": "^6.1.1",
     "dockerode": "^4.0.10",
