@@ -108,7 +108,7 @@ function generateServices(profile) {
       [s.title]: {
         icon: s.icon,
         href: s.url,
-        description: `${s.visitCount} visits`,
+        description: s.domain,
       },
     }));
     services.push({ [cat]: catServices });
@@ -123,7 +123,7 @@ function generateServices(profile) {
       .map((s) => ({
         [s.title]: {
           icon: s.icon, href: s.url,
-          description: `${s.visitCount} visits`,
+          description: s.domain,
         },
       }));
     if (otherServices.length > 0) services.push({ Other: otherServices });

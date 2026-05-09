@@ -109,6 +109,22 @@ function extractDomain(url) {
   try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return null; }
 }
 
+// Canonical domain mapping — merge duplicates
+const CANONICAL_DOMAINS = {
+  "gmail.com": "mail.google.com",
+  "google.com": "google.com",
+  "m.youtube.com": "youtube.com",
+  "mobile.twitter.com": "x.com",
+  "twitter.com": "x.com",
+  "old.reddit.com": "reddit.com",
+  "m.facebook.com": "facebook.com",
+  "m.linkedin.com": "linkedin.com",
+};
+
+function canonicalDomain(domain) {
+  return CANONICAL_DOMAINS[domain] || domain;
+}
+
 // ─── Existing Scanners ───────────────────────────────────────────
 
 function withDbCopy(dbPath, fn) {
@@ -147,8 +163,9 @@ function scanBrowserHistory() {
       );
 
       for (const row of rows) {
-        const domain = extractDomain(row.url);
+        let domain = extractDomain(row.url);
         if (!domain || /^(localhost|127\.|192\.168\.|10\.)/.test(domain)) continue;
+        domain = canonicalDomain(domain);
         const existing = domainMap.get(domain);
         if (existing) {
           existing.visitCount = Math.max(existing.visitCount, row.visit_count);
