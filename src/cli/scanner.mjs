@@ -25,6 +25,7 @@ import { execSync } from "child_process";
 import { homedir, platform, hostname, userInfo } from "os";
 import { join } from "path";
 import Database from "better-sqlite3";
+import { google } from "googleapis";
 
 const HOME = homedir();
 const OS = platform();
@@ -495,6 +496,100 @@ async function scanCurrencyRates(countryCode) {
   } catch { return null; }
 }
 
+// ─── NEW: Google API (Gmail + Calendar) ─────────────────────────
+
+function getGoogleAuth() {
+  const credPath = join(HOME, ".homepage", "google-credentials.json");
+  const tokenPath = join(HOME, ".homepage", "google-tokens.json");
+  if (!existsSync(credPath) || !existsSync(tokenPath)) return null;
+
+  try {
+    const raw = JSON.parse(readFileSync(credPath, "utf8"));
+    const creds = raw.installed || raw.web;
+    const tokens = JSON.parse(readFileSync(tokenPath, "utf8"));
+    const auth = new google.auth.OAuth2(creds.client_id, creds.client_secret);
+    auth.setCredentials(tokens);
+    return auth;
+  } catch { return null; }
+}
+
+async function scanGmail(auth) {
+  if (!auth) return { connected: false, emails: [] };
+  try {
+    const gmail = google.gmail({ version: "v1", auth });
+    const res = await gmail.users.messages.list({
+      userId: "me",
+      maxResults: 5,
+      q: "is:inbox",
+    });
+
+    const messages = res.data.messages || [];
+    const emails = [];
+
+    for (const msg of messages.slice(0, 5)) {
+      const detail = await gmail.users.messages.get({
+        userId: "me",
+        id: msg.id,
+        format: "metadata",
+        metadataHeaders: ["Subject", "From", "Date"],
+      });
+
+      const headers = detail.data.payload?.headers || [];
+      const subject = headers.find((h) => h.name === "Subject")?.value || "(no subject)";
+      const from = headers.find((h) => h.name === "From")?.value || "";
+      const date = headers.find((h) => h.name === "Date")?.value || "";
+      const isUnread = detail.data.labelIds?.includes("UNREAD") || false;
+
+      // Clean "From" — extract name or email
+      const fromMatch = from.match(/^"?([^"<]+)"?\s*</) || from.match(/^([^@]+@[^@]+)$/);
+      const fromName = fromMatch?.[1]?.trim() || from;
+
+      emails.push({ subject, from: fromName, date, unread: isUnread, snippet: detail.data.snippet });
+    }
+
+    // Get unread count
+    const unreadRes = await gmail.users.labels.get({ userId: "me", id: "INBOX" });
+    const unreadCount = unreadRes.data.messagesUnread || 0;
+
+    return { connected: true, unreadCount, emails };
+  } catch (e) {
+    console.error(`  ⚠ Gmail API error: ${e.message}`);
+    return { connected: false, error: e.message, emails: [] };
+  }
+}
+
+async function scanGoogleCalendar(auth) {
+  if (!auth) return { connected: false, events: [] };
+  try {
+    const cal = google.calendar({ version: "v3", auth });
+    const now = new Date();
+    const endOfWeek = new Date(now);
+    endOfWeek.setDate(endOfWeek.getDate() + 7);
+
+    const res = await cal.events.list({
+      calendarId: "primary",
+      timeMin: now.toISOString(),
+      timeMax: endOfWeek.toISOString(),
+      maxResults: 10,
+      singleEvents: true,
+      orderBy: "startTime",
+    });
+
+    const events = (res.data.items || []).map((e) => ({
+      title: e.summary || "(no title)",
+      start: e.start?.dateTime || e.start?.date,
+      end: e.end?.dateTime || e.end?.date,
+      location: e.location || null,
+      allDay: !e.start?.dateTime,
+    }));
+
+    return { connected: true, events };
+  } catch (e) {
+    console.error(`  ⚠ Calendar API error: ${e.message}`);
+    return { connected: false, error: e.message, events: [] };
+  }
+}
+
 // ─── Main ────────────────────────────────────────────────────────
 
 console.error("🔍 Scanning your environment...\n");
@@ -556,6 +651,23 @@ console.error("  💱 Currency rates...");
 const currency = await scanCurrencyRates(geo?.countryCode);
 console.error(`     ${currency ? `1 USD = ${currency.rate?.toFixed(2)} ${currency.local}` : "N/A"}`);
 
+console.error("  📧 Gmail...");
+const googleAuth = getGoogleAuth();
+const gmail = await scanGmail(googleAuth);
+if (gmail.connected) {
+  console.error(`     ${gmail.unreadCount} unread, ${gmail.emails.length} recent emails`);
+} else {
+  console.error(`     not connected (run: node connect-google.mjs)`);
+}
+
+console.error("  📆 Google Calendar...");
+const googleCalendar = await scanGoogleCalendar(googleAuth);
+if (googleCalendar.connected) {
+  console.error(`     ${googleCalendar.events.length} upcoming event(s)`);
+} else {
+  console.error(`     not connected`);
+}
+
 const profile = {
   meta: {
     scannedAt: new Date().toISOString(),
@@ -577,6 +689,8 @@ const profile = {
   rssFeeds,
   holidays,
   currency,
+  gmail,
+  googleCalendar,
 };
 
 console.error("\n✅ Scan complete. Profile ready.\n");
