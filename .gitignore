@@ -52,3 +52,21 @@ site*/
 
 # venv
 .venv/
+
+# === Lobi additions ===
+# Local DB (per-user, never committed)
+lobi.db
+lobi.db-journal
+lobi.db-wal
+lobi.db-shm
+
+# Lobi dev server PID
+.dev-server.pid
+
+# Playwright artifacts (Lobi-only — upstream uses vitest)
+/e2e/results
+/test-results
+/playwright-report
+
+# .env (gitignored — only .env.example is committed)
+.env
