@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Homepage Environment Scanner
+ * Homepage Environment Scanner v2
  *
  * Scans the local machine for:
  * - Browser history (top sites, categories)
@@ -8,11 +8,19 @@
  * - Docker containers
  * - Running services (port scan)
  * - Installed dev tools
+ * - Geolocation (IP-based)
+ * - macOS Calendar events
+ * - macOS Reminders
+ * - Spotify now playing
+ * - Battery status
+ * - Recent downloads
+ * - RSS feed discovery
+ * - Screen time (macOS)
  *
  * Outputs a machine profile JSON that agents use to generate config.
  */
 
-import { copyFileSync, existsSync, readFileSync, readdirSync, unlinkSync } from "fs";
+import { copyFileSync, existsSync, readFileSync, readdirSync, statSync, unlinkSync } from "fs";
 import { execSync } from "child_process";
 import { homedir, platform, hostname, userInfo } from "os";
 import { join } from "path";
@@ -101,7 +109,7 @@ function extractDomain(url) {
   try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return null; }
 }
 
-// ─── Scanner Functions ───────────────────────────────────────────
+// ─── Existing Scanners ───────────────────────────────────────────
 
 function withDbCopy(dbPath, fn) {
   const tmp = join("/tmp", `hp_scan_${Date.now()}.db`);
@@ -141,15 +149,13 @@ function scanBrowserHistory() {
       for (const row of rows) {
         const domain = extractDomain(row.url);
         if (!domain || /^(localhost|127\.|192\.168\.|10\.)/.test(domain)) continue;
-
         const existing = domainMap.get(domain);
         if (existing) {
           existing.visitCount = Math.max(existing.visitCount, row.visit_count);
         } else {
           const cat = categorize(row.url);
           domainMap.set(domain, {
-            domain,
-            url: `https://${domain}/`,
+            domain, url: `https://${domain}/`,
             title: cat?.name || row.title.replace(/\s*[-–|].*$/, "").trim().slice(0, 40),
             visitCount: row.visit_count,
             lastVisit: Number(BigInt(row.last_visit_time) - EPOCH) / 1000,
@@ -170,21 +176,18 @@ function scanBrowserHistory() {
     if (!categories[s.category]) categories[s.category] = [];
     categories[s.category].push(s);
   }
-
   return { browsers, topSites: sites.slice(0, 20), categories };
 }
 
 function scanBookmarks() {
   const paths = BROWSER_PATHS[OS];
   if (!paths) return [];
-
   const allBookmarks = [];
 
   for (const [browser, { bookmarks: bPath }] of Object.entries(paths)) {
     if (!bPath) continue;
     const fullPath = join(HOME, bPath);
     if (!existsSync(fullPath)) continue;
-
     try {
       const data = JSON.parse(readFileSync(fullPath, "utf8"));
       const walk = (node, folder = "") => {
@@ -194,33 +197,20 @@ function scanBookmarks() {
           if (domain && !/^(localhost|127\.|192\.168\.)/.test(domain)) {
             const cat = categorize(node.url);
             allBookmarks.push({
-              name: node.name,
-              url: node.url,
-              domain,
+              name: node.name, url: node.url, domain,
               folder: folder || "Unsorted",
               category: cat?.category || "Other",
-              icon: cat?.icon || "mdi-web",
-              browser,
+              icon: cat?.icon || "mdi-web", browser,
             });
           }
         }
-        if (node.children) {
-          for (const child of node.children) {
-            walk(child, node.name || folder);
-          }
-        }
+        if (node.children) for (const child of node.children) walk(child, node.name || folder);
       };
-
-      if (data.roots) {
-        for (const root of Object.values(data.roots)) {
-          if (typeof root === "object") walk(root);
-        }
-      }
+      if (data.roots) for (const root of Object.values(data.roots)) if (typeof root === "object") walk(root);
     } catch (e) {
       console.error(`  ⚠ Could not read ${browser} bookmarks: ${e.message}`);
     }
   }
-
   return allBookmarks;
 }
 
@@ -229,49 +219,30 @@ function scanDockerContainers() {
     const output = execSync("docker ps --format '{{json .}}'", { encoding: "utf8", timeout: 5000 });
     return output.trim().split("\n").filter(Boolean).map((line) => {
       const c = JSON.parse(line);
-      return {
-        name: c.Names,
-        image: c.Image,
-        status: c.Status,
-        ports: c.Ports,
-        state: c.State,
-      };
+      return { name: c.Names, image: c.Image, status: c.Status, ports: c.Ports, state: c.State };
     });
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function scanListeningPorts() {
   try {
     let output;
     if (OS === "darwin" || OS === "linux") {
-      output = execSync("lsof -iTCP -sTCP:LISTEN -P -n 2>/dev/null || ss -tlnp 2>/dev/null", {
-        encoding: "utf8", timeout: 5000,
-      });
+      output = execSync("lsof -iTCP -sTCP:LISTEN -P -n 2>/dev/null || ss -tlnp 2>/dev/null", { encoding: "utf8", timeout: 5000 });
     } else {
       output = execSync("netstat -an | findstr LISTENING", { encoding: "utf8", timeout: 5000 });
     }
-
     const ports = new Map();
     for (const line of output.split("\n")) {
       const portMatch = line.match(/:(\d+)\s/);
       const nameMatch = line.match(/^(\S+)/);
       if (portMatch) {
         const port = parseInt(portMatch[1]);
-        if (port > 1024 && port < 65535) {
-          ports.set(port, {
-            port,
-            process: nameMatch?.[1] || "unknown",
-            line: line.trim(),
-          });
-        }
+        if (port > 1024 && port < 65535) ports.set(port, { port, process: nameMatch?.[1] || "unknown" });
       }
     }
     return [...ports.values()].sort((a, b) => a.port - b.port);
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function detectDevTools() {
@@ -282,7 +253,6 @@ function detectDevTools() {
       tools.push({ name, version: version.split("\n")[0], icon });
     } catch {}
   };
-
   check("node", "Node.js", "si-nodedotjs");
   check("python3", "Python", "si-python");
   check("go", "Go", "si-go");
@@ -293,8 +263,219 @@ function detectDevTools() {
   check("kubectl", "Kubernetes", "si-kubernetes");
   check("git", "Git", "si-git");
   check("code", "VS Code", "si-visualstudiocode");
-
   return tools;
+}
+
+// ─── NEW: Geolocation (IP-based) ────────────────────────────────
+
+async function scanGeolocation() {
+  try {
+    const res = await fetch("http://ip-api.com/json/?fields=status,country,countryCode,city,lat,lon,timezone,query", { signal: AbortSignal.timeout(5000) });
+    const data = await res.json();
+    if (data.status === "success") {
+      return { city: data.city, country: data.country, countryCode: data.countryCode, lat: data.lat, lon: data.lon, timezone: data.timezone, ip: data.query };
+    }
+  } catch {}
+  return null;
+}
+
+// ─── NEW: macOS Calendar Events ─────────────────────────────────
+
+function scanCalendarEvents() {
+  if (OS !== "darwin") return [];
+  try {
+    // Use icalBuddy if available, otherwise osascript
+    try {
+      const output = execSync("icalBuddy -n -nc -li 10 -ea -df '%Y-%m-%d' -tf '%H:%M' eventsToday+3", { encoding: "utf8", timeout: 5000 });
+      return output.trim().split("\n").filter(Boolean).map((line) => {
+        const match = line.match(/^(.+?)(\d{4}-\d{2}-\d{2})?\s*(?:at\s*)?(\d{2}:\d{2})?\s*-\s*(\d{2}:\d{2})?/);
+        return { raw: line.trim(), title: match?.[1]?.trim() || line.trim() };
+      }).slice(0, 10);
+    } catch {
+      // Fallback: osascript
+      const script = `
+        tell application "Calendar"
+          set today to current date
+          set endDate to today + 3 * days
+          set output to ""
+          repeat with cal in calendars
+            set evts to (every event of cal whose start date >= today and start date <= endDate)
+            repeat with e in evts
+              set output to output & summary of e & " | " & start date of e & linefeed
+            end repeat
+          end repeat
+          return output
+        end tell
+      `;
+      const output = execSync(`osascript -e '${script.replace(/'/g, "'\\''")}'`, { encoding: "utf8", timeout: 10000 });
+      return output.trim().split("\n").filter(Boolean).map((line) => {
+        const parts = line.split(" | ");
+        return { title: parts[0]?.trim(), date: parts[1]?.trim() };
+      }).slice(0, 10);
+    }
+  } catch { return []; }
+}
+
+// ─── NEW: macOS Reminders ───────────────────────────────────────
+
+function scanReminders() {
+  if (OS !== "darwin") return [];
+  try {
+    const script = `
+      tell application "Reminders"
+        set output to ""
+        repeat with r in (every reminder whose completed is false)
+          set output to output & name of r & linefeed
+        end repeat
+        return output
+      end tell
+    `;
+    const output = execSync(`osascript -e '${script.replace(/'/g, "'\\''")}'`, { encoding: "utf8", timeout: 10000 });
+    return output.trim().split("\n").filter(Boolean).map((line) => ({ title: line.trim() })).slice(0, 15);
+  } catch { return []; }
+}
+
+// ─── NEW: Spotify Now Playing ───────────────────────────────────
+
+function scanSpotify() {
+  if (OS !== "darwin") return null;
+  try {
+    const script = `
+      if application "Spotify" is running then
+        tell application "Spotify"
+          set trackName to name of current track
+          set artistName to artist of current track
+          set albumName to album of current track
+          set trackState to player state as string
+          return trackName & " | " & artistName & " | " & albumName & " | " & trackState
+        end tell
+      else
+        return "not_running"
+      end if
+    `;
+    const output = execSync(`osascript -e '${script.replace(/'/g, "'\\''")}'`, { encoding: "utf8", timeout: 5000 }).trim();
+    if (output === "not_running") return null;
+    const [track, artist, album, state] = output.split(" | ");
+    return { track, artist, album, state };
+  } catch { return null; }
+}
+
+// ─── NEW: Battery Status ────────────────────────────────────────
+
+function scanBattery() {
+  try {
+    if (OS === "darwin") {
+      const output = execSync("pmset -g batt", { encoding: "utf8", timeout: 3000 });
+      const pctMatch = output.match(/(\d+)%/);
+      const charging = output.includes("AC Power") || output.includes("charging");
+      return { percent: pctMatch ? parseInt(pctMatch[1]) : null, charging };
+    }
+    if (OS === "linux") {
+      const cap = readFileSync("/sys/class/power_supply/BAT0/capacity", "utf8").trim();
+      const status = readFileSync("/sys/class/power_supply/BAT0/status", "utf8").trim();
+      return { percent: parseInt(cap), charging: status === "Charging" };
+    }
+  } catch {}
+  return null;
+}
+
+// ─── NEW: Recent Downloads ──────────────────────────────────────
+
+function scanRecentDownloads() {
+  const downloadsDir = join(HOME, "Downloads");
+  try {
+    const files = readdirSync(downloadsDir)
+      .filter((f) => !f.startsWith("."))
+      .map((f) => {
+        const fullPath = join(downloadsDir, f);
+        const stat = statSync(fullPath);
+        return { name: f, size: stat.size, modified: stat.mtime.toISOString(), isDir: stat.isDirectory() };
+      })
+      .sort((a, b) => new Date(b.modified) - new Date(a.modified))
+      .slice(0, 10);
+    return files;
+  } catch { return []; }
+}
+
+// ─── NEW: RSS Feed Discovery ────────────────────────────────────
+
+async function discoverRssFeeds(topSites) {
+  const feedPaths = ["/rss", "/feed", "/atom.xml", "/rss.xml", "/feed.xml", "/index.xml", "/feeds/posts/default"];
+  const discovered = [];
+
+  // Only check news/blog-like sites, skip social/apps
+  const skipDomains = /youtube|google|facebook|instagram|twitter|x\.com|linkedin|reddit|amazon|spotify|netflix|telegram|discord|slack|zoom|meet\./;
+
+  const candidates = topSites
+    .filter((s) => !skipDomains.test(s.domain))
+    .slice(0, 8);
+
+  for (const site of candidates) {
+    for (const path of feedPaths) {
+      try {
+        const url = `https://${site.domain}${path}`;
+        const res = await fetch(url, {
+          signal: AbortSignal.timeout(3000),
+          headers: { "User-Agent": "Homepage-Setup/1.0" },
+          redirect: "follow",
+        });
+        if (res.ok) {
+          const text = await res.text();
+          // Quick check if it looks like RSS/Atom
+          if (text.includes("<rss") || text.includes("<feed") || text.includes("<channel")) {
+            // Extract feed title
+            const titleMatch = text.match(/<title[^>]*>([^<]+)<\/title>/);
+            discovered.push({
+              domain: site.domain,
+              feedUrl: url,
+              title: titleMatch?.[1] || site.title,
+              siteTitle: site.title,
+            });
+            break; // Found feed for this domain, move on
+          }
+        }
+      } catch { continue; }
+    }
+  }
+  return discovered;
+}
+
+// ─── NEW: Public Holidays ───────────────────────────────────────
+
+async function scanHolidays(countryCode) {
+  if (!countryCode) return [];
+  try {
+    const year = new Date().getFullYear();
+    const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${countryCode}`, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return [];
+    const holidays = await res.json();
+    const today = new Date().toISOString().split("T")[0];
+    return holidays
+      .filter((h) => h.date >= today)
+      .slice(0, 5)
+      .map((h) => ({ date: h.date, name: h.localName, intlName: h.name }));
+  } catch { return []; }
+}
+
+// ─── NEW: Currency Rates ────────────────────────────────────────
+
+async function scanCurrencyRates(countryCode) {
+  const currencyByCountry = { TR: "TRY", US: "USD", GB: "GBP", DE: "EUR", FR: "EUR", JP: "JPY", BR: "BRL", IN: "INR", KR: "KRW", MX: "MXN", CA: "CAD", AU: "AUD" };
+  const localCurrency = currencyByCountry[countryCode] || null;
+  if (!localCurrency || localCurrency === "USD") return null;
+
+  try {
+    const res = await fetch(`https://open.er-api.com/v6/latest/USD`, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
+      base: "USD",
+      local: localCurrency,
+      rate: data.rates?.[localCurrency],
+      eurRate: data.rates?.EUR,
+      updated: data.time_last_update_utc,
+    };
+  } catch { return null; }
 }
 
 // ─── Main ────────────────────────────────────────────────────────
@@ -303,24 +484,60 @@ console.error("🔍 Scanning your environment...\n");
 
 console.error("  📂 Browser history...");
 const history = scanBrowserHistory();
-console.error(`     Found ${history.browsers.length} browser(s): ${history.browsers.join(", ") || "none"}`);
+console.error(`     ${history.browsers.length} browser(s): ${history.browsers.join(", ") || "none"}`);
 console.error(`     ${history.topSites.length} top sites across ${Object.keys(history.categories).length} categories`);
 
 console.error("  🔖 Bookmarks...");
 const bookmarks = scanBookmarks();
-console.error(`     Found ${bookmarks.length} bookmarks`);
+console.error(`     ${bookmarks.length} bookmarks`);
 
 console.error("  🐳 Docker containers...");
 const containers = scanDockerContainers();
-console.error(`     Found ${containers.length} running container(s)`);
+console.error(`     ${containers.length} running container(s)`);
 
 console.error("  🔌 Listening ports...");
 const ports = scanListeningPorts();
-console.error(`     Found ${ports.length} service(s)`);
+console.error(`     ${ports.length} service(s)`);
 
 console.error("  🛠  Dev tools...");
 const devTools = detectDevTools();
-console.error(`     Found ${devTools.length} tool(s)`);
+console.error(`     ${devTools.length} tool(s)`);
+
+console.error("  🌍 Geolocation...");
+const geo = await scanGeolocation();
+console.error(`     ${geo ? `${geo.city}, ${geo.country} (${geo.timezone})` : "unavailable"}`);
+
+console.error("  📅 Calendar events...");
+const calendar = scanCalendarEvents();
+console.error(`     ${calendar.length} upcoming event(s)`);
+
+console.error("  ✅ Reminders...");
+const reminders = scanReminders();
+console.error(`     ${reminders.length} active reminder(s)`);
+
+console.error("  🎵 Spotify...");
+const spotify = scanSpotify();
+console.error(`     ${spotify ? `${spotify.track} — ${spotify.artist}` : "not playing"}`);
+
+console.error("  🔋 Battery...");
+const battery = scanBattery();
+console.error(`     ${battery ? `${battery.percent}%${battery.charging ? " (charging)" : ""}` : "no battery"}`);
+
+console.error("  📥 Recent downloads...");
+const downloads = scanRecentDownloads();
+console.error(`     ${downloads.length} file(s)`);
+
+console.error("  📡 RSS feeds...");
+const rssFeeds = await discoverRssFeeds(history.topSites);
+console.error(`     ${rssFeeds.length} feed(s) discovered`);
+
+console.error("  🎉 Public holidays...");
+const holidays = await scanHolidays(geo?.countryCode);
+console.error(`     ${holidays.length} upcoming holiday(s)`);
+
+console.error("  💱 Currency rates...");
+const currency = await scanCurrencyRates(geo?.countryCode);
+console.error(`     ${currency ? `1 USD = ${currency.rate?.toFixed(2)} ${currency.local}` : "N/A"}`);
 
 const profile = {
   meta: {
@@ -329,14 +546,21 @@ const profile = {
     username: userInfo().username,
     platform: OS,
   },
+  geo,
   history,
   bookmarks,
   containers,
   ports,
   devTools,
+  calendar,
+  reminders,
+  spotify,
+  battery,
+  downloads,
+  rssFeeds,
+  holidays,
+  currency,
 };
 
 console.error("\n✅ Scan complete. Profile ready.\n");
-
-// Output profile as JSON to stdout
 console.log(JSON.stringify(profile, null, 2));

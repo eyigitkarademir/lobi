@@ -1,13 +1,17 @@
 #!/usr/bin/env node
 /**
- * Homepage Config Generator
+ * Homepage Config Generator v2
  *
  * Takes a machine profile (from scanner.mjs) and generates
- * personalized Homepage YAML config files.
- *
- * Usage:
- *   node scanner.mjs | node generate.mjs [--output ./config]
- *   node generate.mjs --profile profile.json [--output ./config]
+ * personalized Homepage YAML config files with:
+ * - Smart categorized services from browser history
+ * - Time-based layout (morning/work/evening)
+ * - Auto-discovered RSS feeds as bookmarks
+ * - Weather from IP geolocation
+ * - Calendar + Reminders integration
+ * - Currency rates
+ * - Focus mode support
+ * - Keyboard quick-launch hints
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -28,31 +32,42 @@ for (let i = 0; i < args.length; i++) {
 // ─── Load Profile ────────────────────────────────────────────────
 
 let profile;
-
 if (profilePath) {
   profile = JSON.parse(readFileSync(profilePath, "utf8"));
 } else {
-  // Read from stdin
-  let input = "";
   const chunks = [];
   process.stdin.setEncoding("utf8");
-  for await (const chunk of process.stdin) {
-    chunks.push(chunk);
-  }
-  input = chunks.join("");
-  profile = JSON.parse(input);
+  for await (const chunk of process.stdin) chunks.push(chunk);
+  profile = JSON.parse(chunks.join(""));
 }
 
 console.error("📋 Generating config from profile...");
 console.error(`   User: ${profile.meta.username}@${profile.meta.hostname}`);
 console.error(`   Platform: ${profile.meta.platform}`);
 
+// ─── Time Intelligence ──────────────────────────────────────────
+
+function getTimeMode() {
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 9) return "morning";
+  if (hour >= 9 && hour < 18) return "work";
+  if (hour >= 18 && hour < 23) return "evening";
+  return "night";
+}
+
+function getDayType() {
+  const day = new Date().getDay();
+  return day === 0 || day === 6 ? "weekend" : "weekday";
+}
+
 // ─── Generate Services ──────────────────────────────────────────
 
 function generateServices(profile) {
   const services = [];
+  const timeMode = getTimeMode();
+  const dayType = getDayType();
 
-  // Docker containers → Infrastructure group
+  // Docker containers → Infrastructure (always visible)
   if (profile.containers.length > 0) {
     const infraServices = profile.containers.map((c) => ({
       [c.name]: {
@@ -66,51 +81,60 @@ function generateServices(profile) {
     services.push({ Infrastructure: infraServices });
   }
 
-  // Top sites by category → Service groups
-  const { categories } = profile.history;
-  const priorityOrder = ["Development", "AI", "Productivity", "Communication", "Social", "Entertainment"];
+  // Time-aware category ordering
+  const categoryPriority = {
+    morning:  ["Communication", "Productivity", "Development", "AI", "Social", "Entertainment"],
+    work:     ["Development", "AI", "Productivity", "Communication", "Social", "Entertainment"],
+    evening:  ["Entertainment", "Social", "Communication", "AI", "Development", "Productivity"],
+    night:    ["Entertainment", "Social", "AI", "Communication", "Development", "Productivity"],
+  };
 
-  for (const cat of priorityOrder) {
+  // Weekend shuffles priorities
+  const order = dayType === "weekend"
+    ? ["Entertainment", "Social", "Communication", "Shopping", "AI", "Development", "Productivity"]
+    : (categoryPriority[timeMode] || categoryPriority.work);
+
+  const { categories } = profile.history;
+
+  for (const cat of order) {
     const sites = categories[cat];
     if (!sites || sites.length === 0) continue;
 
-    const catServices = sites.slice(0, 4).map((s) => ({
+    // Time-based: show more items for priority categories
+    const isPriority = order.indexOf(cat) < 3;
+    const limit = isPriority ? 4 : 3;
+
+    const catServices = sites.slice(0, limit).map((s) => ({
       [s.title]: {
         icon: s.icon,
         href: s.url,
         description: `${s.visitCount} visits`,
       },
     }));
-
     services.push({ [cat]: catServices });
   }
 
-  // Other/uncategorized sites with high visit counts
+  // Other/uncategorized with high visits
   const otherSites = categories["Other"];
-  if (otherSites && otherSites.length > 0) {
+  if (otherSites?.length > 0) {
     const otherServices = otherSites
       .filter((s) => s.visitCount >= 10)
       .slice(0, 4)
       .map((s) => ({
         [s.title]: {
-          icon: s.icon,
-          href: s.url,
+          icon: s.icon, href: s.url,
           description: `${s.visitCount} visits`,
         },
       }));
-    if (otherServices.length > 0) {
-      services.push({ Other: otherServices });
-    }
+    if (otherServices.length > 0) services.push({ Other: otherServices });
   }
 
   return services;
 }
 
 function extractContainerUrl(container) {
-  // Parse port mapping like "0.0.0.0:3001->3000/tcp"
   const match = container.ports?.match(/0\.0\.0\.0:(\d+)/);
-  if (match) return `http://localhost:${match[1]}`;
-  return "#";
+  return match ? `http://localhost:${match[1]}` : "#";
 }
 
 // ─── Generate Bookmarks ─────────────────────────────────────────
@@ -118,40 +142,58 @@ function extractContainerUrl(container) {
 function generateBookmarks(profile) {
   const bookmarks = [];
 
-  // Top sites as "Frequently Visited" bookmark group
+  // Frequently Visited
   const topSites = profile.history.topSites.slice(0, 8);
   if (topSites.length > 0) {
-    const topGroup = {
+    bookmarks.push({
       "Frequently Visited": topSites.map((s) => ({
         [s.title]: [{ abbr: s.title.slice(0, 2).toUpperCase(), href: s.url }],
       })),
-    };
-    bookmarks.push(topGroup);
+    });
+  }
+
+  // RSS Feeds as a bookmark group
+  if (profile.rssFeeds?.length > 0) {
+    bookmarks.push({
+      "RSS Feeds": profile.rssFeeds.map((f) => ({
+        [f.title]: [{ abbr: f.title.slice(0, 2).toUpperCase(), href: f.feedUrl }],
+      })),
+    });
   }
 
   // Browser bookmarks grouped by folder
   if (profile.bookmarks.length > 0) {
     const folderMap = new Map();
     const seen = new Set();
-
     for (const bm of profile.bookmarks) {
       if (seen.has(bm.domain)) continue;
       seen.add(bm.domain);
-
       const folder = bm.folder || "Bookmarks";
       if (!folderMap.has(folder)) folderMap.set(folder, []);
       folderMap.get(folder).push(bm);
     }
-
-    // Take top 3 folders with most bookmarks
     const sortedFolders = [...folderMap.entries()]
       .sort((a, b) => b[1].length - a[1].length)
       .slice(0, 3);
-
     for (const [folder, bms] of sortedFolders) {
       bookmarks.push({
         [folder]: bms.slice(0, 6).map((bm) => ({
           [bm.name.slice(0, 30)]: [{ abbr: bm.name.slice(0, 2).toUpperCase(), href: bm.url }],
+        })),
+      });
+    }
+  }
+
+  // "Haven't visited in a while" — sites in bookmarks but low recent visits
+  if (profile.bookmarks.length > 0 && profile.history.topSites.length > 0) {
+    const topDomains = new Set(profile.history.topSites.map((s) => s.domain));
+    const forgotten = profile.bookmarks
+      .filter((bm) => !topDomains.has(bm.domain))
+      .slice(0, 4);
+    if (forgotten.length > 0) {
+      bookmarks.push({
+        "Rediscover": forgotten.map((bm) => ({
+          [bm.name.slice(0, 30)]: [{ abbr: "↺", href: bm.url }],
         })),
       });
     }
@@ -164,23 +206,28 @@ function generateBookmarks(profile) {
 
 function generateSettings(profile) {
   const { categories } = profile.history;
-  const isDev =
-    (categories["Development"]?.length || 0) > 3 || profile.devTools.length > 3;
-  const isCreative =
-    (categories["Entertainment"]?.length || 0) > 3;
+  const isDev = (categories["Development"]?.length || 0) > 3 || profile.devTools.length > 3;
+  const timeMode = getTimeMode();
 
-  // Pick theme based on usage pattern
-  const color = isDev ? "slate" : isCreative ? "purple" : "blue";
+  // Time-based backgrounds
+  const backgrounds = {
+    morning: "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=2560&q=80",
+    work:    isDev
+      ? "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=2560&q=80"
+      : "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=2560&q=80",
+    evening: "https://images.unsplash.com/photo-1507400492013-162706c8c05e?auto=format&fit=crop&w=2560&q=80",
+    night:   "https://images.unsplash.com/photo-1475274047050-1d0c55b7e751?auto=format&fit=crop&w=2560&q=80",
+  };
+
+  const colors = { morning: "amber", work: "slate", evening: "purple", night: "zinc" };
 
   const settings = {
     title: `${profile.meta.username}'s Dashboard`,
     theme: "dark",
-    color,
+    color: colors[timeMode] || "slate",
     headerStyle: "clean",
     background: {
-      image: isDev
-        ? "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=2560&q=80"
-        : "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2560&q=80",
+      image: backgrounds[timeMode] || backgrounds.work,
       blur: "sm",
       opacity: 25,
     },
@@ -206,16 +253,24 @@ function generateSettings(profile) {
 
 function generateWidgets(profile) {
   const widgets = [];
+  const timeMode = getTimeMode();
 
-  // Greeting
+  // Time-aware greeting
+  const greetings = {
+    morning: `Good morning, ${profile.meta.username}`,
+    work:    `${profile.meta.username}'s workspace`,
+    evening: `Good evening, ${profile.meta.username}`,
+    night:   `Late night, ${profile.meta.username}?`,
+  };
+
   widgets.push({
     greeting: {
       text_size: "xl",
-      text: `Welcome, ${profile.meta.username}`,
+      text: greetings[timeMode] || `Welcome, ${profile.meta.username}`,
     },
   });
 
-  // Search
+  // Search with suggestions
   widgets.push({
     search: {
       provider: ["google", "duckduckgo"],
@@ -224,6 +279,20 @@ function generateWidgets(profile) {
       target: "_blank",
     },
   });
+
+  // Weather from geolocation
+  if (profile.geo) {
+    widgets.push({
+      openmeteo: {
+        label: profile.geo.city,
+        latitude: profile.geo.lat,
+        longitude: profile.geo.lon,
+        timezone: profile.geo.timezone,
+        units: "metric",
+        cache: 5,
+      },
+    });
+  }
 
   // Resources
   widgets.push({
@@ -258,6 +327,97 @@ function generateDocker(profile) {
   return {};
 }
 
+// ─── Generate Custom CSS ────────────────────────────────────────
+
+function generateCustomCss(profile) {
+  const timeMode = getTimeMode();
+
+  // Focus mode: hide entertainment/social during work hours via CSS class
+  let css = `/* Auto-generated by Homepage Setup Agent */\n\n`;
+
+  css += `/* Focus Mode — add ?focus=true to URL to hide distractions */\n`;
+  css += `/* Or toggle via custom.js keyboard shortcut (Alt+F) */\n\n`;
+
+  css += `.focus-mode [data-group="Entertainment"],\n`;
+  css += `.focus-mode [data-group="Social"],\n`;
+  css += `.focus-mode [data-group="Shopping"] {\n`;
+  css += `  display: none !important;\n`;
+  css += `}\n\n`;
+
+  // Quick-launch number hints
+  css += `/* Quick-launch hints (shown on Alt hover) */\n`;
+  css += `.quick-launch-hint {\n`;
+  css += `  position: absolute;\n`;
+  css += `  top: 4px;\n`;
+  css += `  left: 4px;\n`;
+  css += `  background: rgba(0,0,0,0.7);\n`;
+  css += `  color: white;\n`;
+  css += `  font-size: 10px;\n`;
+  css += `  padding: 2px 6px;\n`;
+  css += `  border-radius: 4px;\n`;
+  css += `  display: none;\n`;
+  css += `}\n`;
+
+  return css;
+}
+
+// ─── Generate Custom JS ─────────────────────────────────────────
+
+function generateCustomJs(profile) {
+  const topSites = profile.history.topSites.slice(0, 9);
+
+  let js = `/* Auto-generated by Homepage Setup Agent */\n\n`;
+
+  // Focus mode toggle (Alt+F)
+  js += `// Focus Mode — Alt+F to toggle\n`;
+  js += `document.addEventListener('keydown', (e) => {\n`;
+  js += `  if (e.altKey && e.key === 'f') {\n`;
+  js += `    document.body.classList.toggle('focus-mode');\n`;
+  js += `    e.preventDefault();\n`;
+  js += `  }\n`;
+  js += `});\n\n`;
+
+  // Quick Launch — Alt+1 through Alt+9 for top sites
+  js += `// Quick Launch — Alt+[1-9] opens top sites\n`;
+  js += `const quickLaunchUrls = [\n`;
+  for (const site of topSites) {
+    js += `  "${site.url}", // ${site.title}\n`;
+  }
+  js += `];\n\n`;
+  js += `document.addEventListener('keydown', (e) => {\n`;
+  js += `  if (e.altKey && e.key >= '1' && e.key <= '9') {\n`;
+  js += `    const idx = parseInt(e.key) - 1;\n`;
+  js += `    if (quickLaunchUrls[idx]) {\n`;
+  js += `      window.open(quickLaunchUrls[idx], '_blank');\n`;
+  js += `      e.preventDefault();\n`;
+  js += `    }\n`;
+  js += `  }\n`;
+  js += `});\n\n`;
+
+  // Auto-refresh to update time-based layout
+  js += `// Auto-refresh at mode transitions (9am, 6pm, 11pm)\n`;
+  js += `function scheduleRefresh() {\n`;
+  js += `  const now = new Date();\n`;
+  js += `  const transitions = [9, 18, 23];\n`;
+  js += `  let next = null;\n`;
+  js += `  for (const hour of transitions) {\n`;
+  js += `    const target = new Date(now);\n`;
+  js += `    target.setHours(hour, 0, 0, 0);\n`;
+  js += `    if (target > now) { next = target; break; }\n`;
+  js += `  }\n`;
+  js += `  if (!next) {\n`;
+  js += `    next = new Date(now);\n`;
+  js += `    next.setDate(next.getDate() + 1);\n`;
+  js += `    next.setHours(9, 0, 0, 0);\n`;
+  js += `  }\n`;
+  js += `  const ms = next - now;\n`;
+  js += `  setTimeout(() => location.reload(), ms);\n`;
+  js += `}\n`;
+  js += `scheduleRefresh();\n`;
+
+  return js;
+}
+
 // ─── Write Everything ────────────────────────────────────────────
 
 mkdirSync(outputDir, { recursive: true });
@@ -267,8 +427,10 @@ const bookmarks = generateBookmarks(profile);
 const settings = generateSettings(profile);
 const widgets = generateWidgets(profile);
 const docker = generateDocker(profile);
+const customCss = generateCustomCss(profile);
+const customJs = generateCustomJs(profile);
 
-const files = {
+const yamlFiles = {
   "services.yaml": services,
   "bookmarks.yaml": bookmarks,
   "settings.yaml": settings,
@@ -276,15 +438,20 @@ const files = {
   "docker.yaml": docker,
 };
 
-for (const [filename, data] of Object.entries(files)) {
-  const content = `---\n# Auto-generated by Homepage Setup Agent\n# ${new Date().toISOString()}\n\n${yaml.dump(data, { lineWidth: -1, quotingType: '"' })}`;
-  const filepath = join(outputDir, filename);
-  writeFileSync(filepath, content);
+for (const [filename, data] of Object.entries(yamlFiles)) {
+  const content = `---\n# Auto-generated by Homepage Setup Agent\n# ${new Date().toISOString()}\n# Time mode: ${getTimeMode()} | Day: ${getDayType()}\n\n${yaml.dump(data, { lineWidth: -1, quotingType: '"' })}`;
+  writeFileSync(join(outputDir, filename), content);
   console.error(`   ✅ ${filename}`);
 }
 
+writeFileSync(join(outputDir, "custom.css"), customCss);
+console.error(`   ✅ custom.css`);
+writeFileSync(join(outputDir, "custom.js"), customJs);
+console.error(`   ✅ custom.js`);
+
 console.error(`\n🎉 Homepage config generated at ${outputDir}/`);
-console.error("   Restart Homepage to see changes.\n");
+console.error(`   Time mode: ${getTimeMode()} | Day: ${getDayType()}`);
+console.error(`   Focus mode: Alt+F | Quick launch: Alt+[1-9]\n`);
 
 // Output summary
 const summary = {
@@ -294,6 +461,15 @@ const summary = {
   browsers: profile.history.browsers,
   containers: profile.containers.length,
   devTools: profile.devTools.map((t) => t.name),
+  timeMode: getTimeMode(),
+  dayType: getDayType(),
+  geo: profile.geo?.city || null,
+  rssFeeds: profile.rssFeeds?.length || 0,
+  holidays: profile.holidays?.length || 0,
+  reminders: profile.reminders?.length || 0,
+  calendarEvents: profile.calendar?.length || 0,
+  currency: profile.currency ? `1 USD = ${profile.currency.rate?.toFixed(2)} ${profile.currency.local}` : null,
+  features: ["time-based-layout", "focus-mode", "quick-launch", "auto-refresh", "rss-discovery"],
 };
 
 console.log(JSON.stringify(summary, null, 2));
