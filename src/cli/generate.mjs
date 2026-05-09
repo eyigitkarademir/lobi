@@ -67,41 +67,28 @@ function generateServices(profile) {
   const timeMode = getTimeMode();
   const dayType = getDayType();
 
-  // Gmail — show as first service group if connected
-  if (profile.gmail?.connected && profile.gmail.emails.length > 0) {
-    const gmailServices = profile.gmail.emails.slice(0, 3).map((e) => ({
-      [e.subject.slice(0, 40)]: {
-        icon: e.unread ? "mdi-email-alert" : "mdi-email-open",
-        href: "https://mail.google.com",
-        description: e.from.slice(0, 50),
+  // Hacker News — top stories (zero auth)
+  if (profile.hackerNews?.length > 0) {
+    const hnServices = profile.hackerNews.slice(0, 4).map((s) => ({
+      [s.title.slice(0, 45)]: {
+        icon: "si-ycombinator",
+        href: s.url,
+        description: `${s.score} pts · ${s.comments} comments`,
       },
     }));
-    // Add unread count header
-    gmailServices.unshift({
-      [`Gmail (${profile.gmail.unreadCount} unread)`]: {
-        icon: "si-gmail",
-        href: "https://mail.google.com",
-        description: "Open inbox",
-      },
-    });
-    services.push({ "📧 Mail": gmailServices });
+    services.push({ "Hacker News": hnServices });
   }
 
-  // Google Calendar — upcoming events
-  if (profile.googleCalendar?.connected && profile.googleCalendar.events.length > 0) {
-    const calServices = profile.googleCalendar.events.slice(0, 4).map((e) => {
-      const start = new Date(e.start);
-      const timeStr = e.allDay ? "All day" : start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      const dayStr = start.toLocaleDateString([], { weekday: "short" });
-      return {
-        [e.title.slice(0, 40)]: {
-          icon: "mdi-calendar-clock",
-          href: "https://calendar.google.com",
-          description: `${dayStr} ${timeStr}${e.location ? ` · ${e.location.slice(0, 20)}` : ""}`,
-        },
-      };
-    });
-    services.push({ "📅 Calendar": calServices });
+  // GitHub Trending — hot repos (zero auth)
+  if (profile.githubTrending?.length > 0) {
+    const ghServices = profile.githubTrending.slice(0, 3).map((r) => ({
+      [r.name]: {
+        icon: "si-github",
+        href: r.url,
+        description: `${r.stars} stars · ${r.language || ""}`,
+      },
+    }));
+    services.push({ "Trending Repos": ghServices });
   }
 
   // Docker containers → Infrastructure (always visible)

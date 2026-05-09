@@ -45,7 +45,7 @@ try {
   const scannerPath = join(__dirname, "scanner.mjs");
   const output = execSync(`node "${scannerPath}"`, {
     encoding: "utf8",
-    timeout: 30000,
+    timeout: 60000,
     stdio: ["pipe", "pipe", "inherit"],
   });
   profile = JSON.parse(output);

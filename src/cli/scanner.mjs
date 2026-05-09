@@ -25,7 +25,6 @@ import { execSync } from "child_process";
 import { homedir, platform, hostname, userInfo } from "os";
 import { join } from "path";
 import Database from "better-sqlite3";
-import { google } from "googleapis";
 
 const HOME = homedir();
 const OS = platform();
@@ -496,98 +495,59 @@ async function scanCurrencyRates(countryCode) {
   } catch { return null; }
 }
 
-// ─── NEW: Google API (Gmail + Calendar) ─────────────────────────
+// ─── NEW: Hacker News Top Stories (zero auth) ──────────────────
 
-function getGoogleAuth() {
-  const credPath = join(HOME, ".homepage", "google-credentials.json");
-  const tokenPath = join(HOME, ".homepage", "google-tokens.json");
-  if (!existsSync(credPath) || !existsSync(tokenPath)) return null;
-
+async function scanHackerNews() {
   try {
-    const raw = JSON.parse(readFileSync(credPath, "utf8"));
-    const creds = raw.installed || raw.web;
-    const tokens = JSON.parse(readFileSync(tokenPath, "utf8"));
-    const auth = new google.auth.OAuth2(creds.client_id, creds.client_secret);
-    auth.setCredentials(tokens);
-    return auth;
-  } catch { return null; }
-}
-
-async function scanGmail(auth) {
-  if (!auth) return { connected: false, emails: [] };
-  try {
-    const gmail = google.gmail({ version: "v1", auth });
-    const res = await gmail.users.messages.list({
-      userId: "me",
-      maxResults: 5,
-      q: "is:inbox",
-    });
-
-    const messages = res.data.messages || [];
-    const emails = [];
-
-    for (const msg of messages.slice(0, 5)) {
-      const detail = await gmail.users.messages.get({
-        userId: "me",
-        id: msg.id,
-        format: "metadata",
-        metadataHeaders: ["Subject", "From", "Date"],
-      });
-
-      const headers = detail.data.payload?.headers || [];
-      const subject = headers.find((h) => h.name === "Subject")?.value || "(no subject)";
-      const from = headers.find((h) => h.name === "From")?.value || "";
-      const date = headers.find((h) => h.name === "Date")?.value || "";
-      const isUnread = detail.data.labelIds?.includes("UNREAD") || false;
-
-      // Clean "From" — extract name or email
-      const fromMatch = from.match(/^"?([^"<]+)"?\s*</) || from.match(/^([^@]+@[^@]+)$/);
-      const fromName = fromMatch?.[1]?.trim() || from;
-
-      emails.push({ subject, from: fromName, date, unread: isUnread, snippet: detail.data.snippet });
+    const res = await fetch("https://hacker-news.firebaseio.com/v0/topstories.json", { signal: AbortSignal.timeout(5000) });
+    const ids = await res.json();
+    const stories = [];
+    for (const id of ids.slice(0, 5)) {
+      const storyRes = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`, { signal: AbortSignal.timeout(3000) });
+      const story = await storyRes.json();
+      stories.push({ title: story.title, url: story.url || `https://news.ycombinator.com/item?id=${id}`, score: story.score, comments: story.descendants || 0 });
     }
-
-    // Get unread count
-    const unreadRes = await gmail.users.labels.get({ userId: "me", id: "INBOX" });
-    const unreadCount = unreadRes.data.messagesUnread || 0;
-
-    return { connected: true, unreadCount, emails };
-  } catch (e) {
-    console.error(`  ⚠ Gmail API error: ${e.message}`);
-    return { connected: false, error: e.message, emails: [] };
-  }
+    return stories;
+  } catch { return []; }
 }
 
-async function scanGoogleCalendar(auth) {
-  if (!auth) return { connected: false, events: [] };
+// ─── NEW: GitHub Trending (zero auth, scrape) ───────────────────
+
+async function scanGithubTrending() {
   try {
-    const cal = google.calendar({ version: "v3", auth });
-    const now = new Date();
-    const endOfWeek = new Date(now);
-    endOfWeek.setDate(endOfWeek.getDate() + 7);
-
-    const res = await cal.events.list({
-      calendarId: "primary",
-      timeMin: now.toISOString(),
-      timeMax: endOfWeek.toISOString(),
-      maxResults: 10,
-      singleEvents: true,
-      orderBy: "startTime",
-    });
-
-    const events = (res.data.items || []).map((e) => ({
-      title: e.summary || "(no title)",
-      start: e.start?.dateTime || e.start?.date,
-      end: e.end?.dateTime || e.end?.date,
-      location: e.location || null,
-      allDay: !e.start?.dateTime,
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0];
+    const res = await fetch(`https://api.github.com/search/repositories?q=created:>${weekAgo}&sort=stars&order=desc&per_page=5`, { signal: AbortSignal.timeout(8000), headers: { "User-Agent": "Homepage-Setup/1.0" } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.items || []).map((r) => ({
+      name: r.full_name,
+      description: r.description?.slice(0, 80) || "",
+      stars: r.stargazers_count,
+      language: r.language,
+      url: r.html_url,
     }));
+  } catch { return []; }
+}
 
-    return { connected: true, events };
-  } catch (e) {
-    console.error(`  ⚠ Calendar API error: ${e.message}`);
-    return { connected: false, error: e.message, events: [] };
-  }
+// ─── NEW: World Clock (from geo) ────────────────────────────────
+
+function generateWorldClocks(geo) {
+  if (!geo) return [];
+  // Suggest useful timezones based on user's location
+  const allZones = [
+    { city: "New York", tz: "America/New_York", region: "US" },
+    { city: "San Francisco", tz: "America/Los_Angeles", region: "US" },
+    { city: "London", tz: "Europe/London", region: "EU" },
+    { city: "Berlin", tz: "Europe/Berlin", region: "EU" },
+    { city: "Istanbul", tz: "Europe/Istanbul", region: "EU" },
+    { city: "Dubai", tz: "Asia/Dubai", region: "ME" },
+    { city: "Tokyo", tz: "Asia/Tokyo", region: "APAC" },
+    { city: "Singapore", tz: "Asia/Singapore", region: "APAC" },
+    { city: "Sydney", tz: "Australia/Sydney", region: "APAC" },
+    { city: "São Paulo", tz: "America/Sao_Paulo", region: "LATAM" },
+  ];
+  // Exclude user's own timezone, pick 4 useful ones
+  return allZones.filter((z) => z.tz !== geo.timezone).slice(0, 4);
 }
 
 // ─── Main ────────────────────────────────────────────────────────
@@ -651,22 +611,17 @@ console.error("  💱 Currency rates...");
 const currency = await scanCurrencyRates(geo?.countryCode);
 console.error(`     ${currency ? `1 USD = ${currency.rate?.toFixed(2)} ${currency.local}` : "N/A"}`);
 
-console.error("  📧 Gmail...");
-const googleAuth = getGoogleAuth();
-const gmail = await scanGmail(googleAuth);
-if (gmail.connected) {
-  console.error(`     ${gmail.unreadCount} unread, ${gmail.emails.length} recent emails`);
-} else {
-  console.error(`     not connected (run: node connect-google.mjs)`);
-}
+console.error("  🔥 Hacker News...");
+const hackerNews = await scanHackerNews();
+console.error(`     ${hackerNews.length} top stories`);
 
-console.error("  📆 Google Calendar...");
-const googleCalendar = await scanGoogleCalendar(googleAuth);
-if (googleCalendar.connected) {
-  console.error(`     ${googleCalendar.events.length} upcoming event(s)`);
-} else {
-  console.error(`     not connected`);
-}
+console.error("  ⭐ GitHub Trending...");
+const githubTrending = await scanGithubTrending();
+console.error(`     ${githubTrending.length} trending repos`);
+
+console.error("  🕐 World clocks...");
+const worldClocks = generateWorldClocks(geo);
+console.error(`     ${worldClocks.length} timezone(s)`);
 
 const profile = {
   meta: {
@@ -689,8 +644,9 @@ const profile = {
   rssFeeds,
   holidays,
   currency,
-  gmail,
-  googleCalendar,
+  hackerNews,
+  githubTrending,
+  worldClocks,
 };
 
 console.error("\n✅ Scan complete. Profile ready.\n");
