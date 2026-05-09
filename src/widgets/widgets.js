@@ -11,6 +11,7 @@ import backrest from "./backrest/widget";
 import bazarr from "./bazarr/widget";
 import beszel from "./beszel/widget";
 import booklore from "./booklore/widget";
+import browserhistory from "./browserhistory/widget";
 import caddy from "./caddy/widget";
 import calendar from "./calendar/widget";
 import calibreweb from "./calibreweb/widget";
@@ -166,6 +167,7 @@ const widgets = {
   backrest,
   bazarr,
   booklore,
+  browserhistory,
   beszel,
   caddy,
   calibreweb,
