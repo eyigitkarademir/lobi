@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Lobi — Direction C — Bookmarks card</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --bg-page: #FAF6EE;
+    --bg-card: #FFFCF5;
+    --bg-card-hover: #F4EFE3;
+    --border-subtle: #E8E0CE;
+    --border-strong: #C4B89E;
+    --text-primary: #1C1A22;
+    --text-secondary: #5A5566;
+    --text-tertiary: #8E8896;
+    --accent: #9B7FB8;
+    --accent-hover: #8268A1;
+    --accent-fg: #FFFCF5;
+  }
+  html, body {
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-family: ui-sans-serif, system-ui, "Geist Sans", "Inter", sans-serif;
+    letter-spacing: 0.005em;
+  }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+  }
+  .card:hover { border-color: var(--border-strong); }
+  .row {
+    border-radius: 10px;
+    transition: background 120ms ease, transform 140ms ease;
+  }
+  .row:hover { background: rgba(155, 127, 184, 0.08); }
+  .row:hover .row-title { color: var(--accent-hover); }
+  .glyph {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #F2EAD7 0%, #E8E0CE 100%);
+    color: var(--text-secondary);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 500;
+    border: 1px solid var(--border-subtle);
+  }
+  /* The "offset tile" echo: featured row gets a tiny lilac corner block on the left */
+  .row-featured { position: relative; }
+  .row-featured::before {
+    content: "";
+    position: absolute;
+    left: -10px; top: 8px; bottom: 8px;
+    width: 3px; border-radius: 2px;
+    background: var(--accent);
+  }
+  .pill-soft {
+    background: rgba(155, 127, 184, 0.14);
+    color: var(--accent-hover);
+    border-radius: 999px;
+    padding: 2px 9px;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
+</style>
+</head>
+<body class="min-h-screen p-10">
+
+  <div class="max-w-[420px]">
+    <!-- Card -->
+    <article class="card p-5">
+      <!-- Header -->
+      <header class="flex items-center justify-between mb-4">
+        <h2 class="text-[16px] font-medium" style="color:var(--text-primary); letter-spacing:-0.005em">Recents</h2>
+        <span class="pill-soft">8 saved</span>
+      </header>
+
+      <!-- Section label -->
+      <div class="text-[11px] uppercase mb-3" style="color:var(--text-tertiary); letter-spacing:0.12em">This week</div>
+
+      <!-- Rows, with one featured (offset-tile echo) -->
+      <ul class="flex flex-col gap-1 pl-3">
+        <li class="row row-featured flex items-center gap-3 px-2 py-2 cursor-pointer">
+          <span class="glyph">A</span>
+          <div class="flex-1 min-w-0">
+            <div class="row-title text-[14px]" style="color:var(--text-primary)">Anthropic — A field guide to caching</div>
+            <div class="text-[11px]" style="color:var(--text-tertiary); letter-spacing:0.02em">anthropic.com · 4 min read</div>
+          </div>
+          <span class="text-[11px]" style="color:var(--text-tertiary); letter-spacing:0.02em">Sat</span>
+        </li>
+        <li class="row flex items-center gap-3 px-2 py-2 cursor-pointer">
+          <span class="glyph">R</span>
+          <div class="flex-1 min-w-0">
+            <div class="row-title text-[14px]" style="color:var(--text-primary)">Raycast — Quicklink patterns</div>
+            <div class="text-[11px]" style="color:var(--text-tertiary); letter-spacing:0.02em">raycast.com · 6 min read</div>
+          </div>
+          <span class="text-[11px]" style="color:var(--text-tertiary); letter-spacing:0.02em">Fri</span>
+        </li>
+        <li class="row flex items-center gap-3 px-2 py-2 cursor-pointer">
+          <span class="glyph">N</span>
+          <div class="flex-1 min-w-0">
+            <div class="row-title text-[14px]" style="color:var(--text-primary)">Nielsen — Calm tech revisited</div>
+            <div class="text-[11px]" style="color:var(--text-tertiary); letter-spacing:0.02em">nngroup.com · 9 min read</div>
+          </div>
+          <span class="text-[11px]" style="color:var(--text-tertiary); letter-spacing:0.02em">Thu</span>
+        </li>
+      </ul>
+
+      <!-- Section label -->
+      <div class="text-[11px] uppercase mt-5 mb-3" style="color:var(--text-tertiary); letter-spacing:0.12em">Quiet pile</div>
+
+      <ul class="flex flex-col gap-1 pl-3">
+        <li class="row flex items-center gap-3 px-2 py-2 cursor-pointer">
+          <span class="glyph">F</span>
+          <div class="flex-1 min-w-0">
+            <div class="row-title text-[14px]" style="color:var(--text-primary)">Figma — Bento card system</div>
+            <div class="text-[11px]" style="color:var(--text-tertiary); letter-spacing:0.02em">figma.com</div>
+          </div>
+        </li>
+        <li class="row flex items-center gap-3 px-2 py-2 cursor-pointer">
+          <span class="glyph">L</span>
+          <div class="flex-1 min-w-0">
+            <div class="row-title text-[14px]" style="color:var(--text-primary)">Linear — Settings rhythm</div>
+            <div class="text-[11px]" style="color:var(--text-tertiary); letter-spacing:0.02em">linear.app</div>
+          </div>
+        </li>
+      </ul>
+
+      <!-- Footer microcopy (voice rule: invitation, not status) -->
+      <div class="mt-5 pt-3 border-t" style="border-color:var(--border-subtle)">
+        <p class="text-[12px]" style="color:var(--text-tertiary); letter-spacing:0.01em">
+          Drop links here from any browser. Lobi reads, never tracks.
+        </p>
+      </div>
+    </article>
+
+    <p class="mt-3 text-[11px] uppercase" style="color:var(--text-tertiary); letter-spacing:0.14em">
+      Direction C · Calm playful · cream + ink + dusty lilac
+    </p>
+  </div>
+
+</body>
+</html>

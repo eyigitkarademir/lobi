@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Lobi — Direction A — Bookmarks card</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --bg-page: #F5F1EA;
+    --bg-card: #FBF8F2;
+    --bg-card-hover: #F1ECE2;
+    --border-subtle: #E4DDD0;
+    --border-strong: #C9BEAB;
+    --text-primary: #1F1A14;
+    --text-secondary: #5C5247;
+    --text-tertiary: #8E8475;
+    --accent: #B5532A;
+    --accent-hover: #9A4422;
+    --accent-fg: #FBF8F2;
+  }
+  html, body {
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Geist Sans", "Inter", sans-serif;
+    font-feature-settings: "ss01", "cv11";
+    letter-spacing: 0.005em;
+  }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    transition: border-color 120ms ease, background 120ms ease;
+  }
+  .card:hover { border-color: var(--border-strong); background: var(--bg-card-hover); }
+  .row { transition: background 120ms ease; }
+  .row:hover { background: rgba(31,26,20,0.035); }
+  .row:hover .row-host { color: var(--accent); }
+  .pill-accent {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
+  .glyph {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: #EFE7D7;
+    color: var(--text-secondary);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 500;
+    border: 1px solid var(--border-subtle);
+  }
+</style>
+</head>
+<body class="min-h-screen p-10">
+
+  <div class="max-w-[420px]">
+    <!-- Card -->
+    <article class="card p-5">
+      <!-- Header -->
+      <header class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <h2 class="text-[15px] font-medium tracking-tight" style="color:var(--text-primary)">Bookmarks</h2>
+          <span class="pill-accent">8</span>
+        </div>
+        <button class="text-[12px]" style="color:var(--text-tertiary); letter-spacing:0.005em">Edit</button>
+      </header>
+
+      <!-- Section label -->
+      <div class="text-[11px] uppercase mb-2" style="color:var(--text-tertiary); letter-spacing:0.08em">Daily</div>
+
+      <!-- Rows -->
+      <ul class="flex flex-col gap-1">
+        <li class="row flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer">
+          <span class="glyph">G</span>
+          <div class="flex-1 min-w-0">
+            <div class="text-[13px]" style="color:var(--text-primary)">GitHub — Pull requests</div>
+            <div class="row-host text-[11px]" style="color:var(--text-tertiary)">github.com</div>
+          </div>
+          <kbd class="text-[10px] px-1.5 py-0.5 rounded" style="background:#EFE7D7; color:var(--text-secondary); border:1px solid var(--border-subtle)">1</kbd>
+        </li>
+        <li class="row flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer">
+          <span class="glyph">L</span>
+          <div class="flex-1 min-w-0">
+            <div class="text-[13px]" style="color:var(--text-primary)">Linear — Inbox</div>
+            <div class="row-host text-[11px]" style="color:var(--text-tertiary)">linear.app</div>
+          </div>
+          <kbd class="text-[10px] px-1.5 py-0.5 rounded" style="background:#EFE7D7; color:var(--text-secondary); border:1px solid var(--border-subtle)">2</kbd>
+        </li>
+        <li class="row flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer">
+          <span class="glyph">F</span>
+          <div class="flex-1 min-w-0">
+            <div class="text-[13px]" style="color:var(--text-primary)">Figma — Lobi brand</div>
+            <div class="row-host text-[11px]" style="color:var(--text-tertiary)">figma.com</div>
+          </div>
+          <kbd class="text-[10px] px-1.5 py-0.5 rounded" style="background:#EFE7D7; color:var(--text-secondary); border:1px solid var(--border-subtle)">3</kbd>
+        </li>
+      </ul>
+
+      <!-- Section label -->
+      <div class="text-[11px] uppercase mt-5 mb-2" style="color:var(--text-tertiary); letter-spacing:0.08em">Reading</div>
+
+      <ul class="flex flex-col gap-1">
+        <li class="row flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer">
+          <span class="glyph">A</span>
+          <div class="flex-1 min-w-0">
+            <div class="text-[13px]" style="color:var(--text-primary)">Anthropic — Engineering blog</div>
+            <div class="row-host text-[11px]" style="color:var(--text-tertiary)">anthropic.com</div>
+          </div>
+        </li>
+        <li class="row flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer">
+          <span class="glyph">T</span>
+          <div class="flex-1 min-w-0">
+            <div class="text-[13px]" style="color:var(--text-primary)">The Browser Company — Notes</div>
+            <div class="row-host text-[11px]" style="color:var(--text-tertiary)">arc.net</div>
+          </div>
+        </li>
+      </ul>
+    </article>
+
+    <!-- Caption -->
+    <p class="mt-3 text-[11px]" style="color:var(--text-tertiary); letter-spacing:0.04em">
+      Direction A · Disciplined warmth · sand + bone + terracotta
+    </p>
+  </div>
+
+</body>
+</html>

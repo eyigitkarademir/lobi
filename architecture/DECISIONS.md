@@ -79,3 +79,26 @@ Each decision uses the DEC-NNN format. Once approved, decisions are locked unles
   - No closed-source variants possible
   - Hosted SaaS subscription revenue still works (SaaS ≠ distribution under GPL-3.0)
 - **Locked by:** Emre (this session)
+
+### DEC-012: Brand identity v1 — Direction B "Editorial confidence"
+- **Date:** 2026-05-10
+- **Status:** approved (locked)
+- **Alternatives Checked (LB-02):**
+  - Direction A "Disciplined warmth" — sand + terracotta, 45/25/25/5 mix, Evaluator scored 42/45 (winner). Rejected by Emre.
+  - Direction B "Editorial confidence" — zinc + oxblood, 30/5/5/60 mix (Vercel-heavy), Evaluator scored 42/45 (runner-up). **Chosen.**
+  - Direction C "Calm playful" — cream + dusty lilac, 15/40/30/15 mix. Eliminated for anti-pattern violation (gradient on .glyph) + WCAG AA failure (3.34:1 vs claimed 4.6:1).
+- **Decision:** Lobi v1 brand = Direction B. Wordmark-led editorial identity. Surfaces zinc (`#F4F4F2` light / `#0D0D0C` dark), accent oxblood (`#7C2233` light / `#C44A5C` dark), display type Tiempos, body type Geist.
+- **Rationale (Emre's choice):** B's typographic boldness creates stronger product personality than A's quieter warmth. Spec's "no single-bucket extreme" caveat acknowledged — Emre accepts the 60% Vercel weight as deliberate brand choice, not as drift.
+- **Implications:**
+  - `DESIGN.md` tokens locked (light + dark mode, full type ladder, voice rules)
+  - Logo files committed: `public/logo-mark.svg`, `public/logo-wordmark.svg`, `public/logo-lockup.svg`, `public/favicon.svg`
+  - Tiempos serif font dependency added (display-only, with `ui-serif` fallback chain)
+  - Voice rules: 5 contracts (headlines have a POV, lowercase intentional, connection labels are nouns, errors stated never apologized for, tabular numerics always)
+  - Anti-pattern #11 + #12 added (proportional digits banned, accent-as-text banned in dark mode)
+- **Math verification (post-Designer revision):**
+  - Light: `--accent` #7C2233 on white → 9.7:1 (AAA) — safe for any text
+  - Dark: `--accent` #C44A5C on `#161614` → 3.83:1 (AA Large only) — fill/CTA only
+  - Dark: `--accent-strong` #E69CAA introduced → 8.5:1 (AAA) — for accent text in dark mode
+  - All text-primary/secondary/tertiary tokens verified AAA in both modes
+- **Locked by:** Emre (selection 2026-05-10)
+- **Traces to:** `specs/LB-02-visual-identity.md`, `architecture/brand-explorations/` (B kept, A+C archived), `DESIGN.md` (tokens + voice rules), `public/logo-*.svg`

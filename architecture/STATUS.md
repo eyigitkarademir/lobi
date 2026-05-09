@@ -3,7 +3,7 @@
 **Last updated:** 2026-05-10 (post-pivot to fork)
 
 ## Current Phase
-**V0.1 fork base** — gethomepage cloned, Caki infra layered, Lobi divergence not yet implemented.
+**V0.1 fork base — brand locked, divergence implementation not yet started.**
 
 ## Completed
 - [x] **Pivot decision** (DEC-009) — switched from scratch build (lobi-scratch) to fork of gethomepage/homepage (lobi-fork)
@@ -21,11 +21,21 @@
 - [x] License clarified (GPL-3.0, DEC-011)
 
 ## In Progress
-- [ ] Set upstream remote (`git remote add upstream https://github.com/gethomepage/homepage.git`)
-- [ ] First commit on lobi-fork (Caki infra layer)
-- [ ] Memory symlink for `/Users/eyigitkarademir/lobi-fork`
-- [ ] Verify upstream `pnpm dev` still runs cleanly (port 3000)
-- [ ] Add Lobi deps via `pnpm add` (drizzle-orm, @libsql/client, better-auth, @dnd-kit/*, @playwright/test)
+- (LB-02 complete — pending commit of brand artifacts)
+
+## Recently Completed
+- [x] Upstream remote set (`origin` = eyigitkarademir/lobi, `upstream` = gethomepage/homepage)
+- [x] First commit on lobi-fork (Caki infra layer) → `e96c1119`
+- [x] GitHub repo created: github.com/eyigitkarademir/lobi (PUBLIC, GPL-3.0)
+- [x] `dev` branch pushed to origin
+- [x] Memory symlink set for `/Users/eyigitkarademir/lobi-fork`
+- [x] Upstream `pnpm dev` verified — HTTP 200 on port 3000
+- [x] Lobi deps added via `pnpm add` (drizzle-orm, @libsql/client, better-auth, @dnd-kit/*, @playwright/test, drizzle-kit)
+- [x] **LB-02 complete** — brand identity locked to Direction B "Editorial confidence" (DEC-012):
+  - DESIGN.md updated with full token set (light + dark, type ladder, voice rules)
+  - Logo files copied to `public/` (mark, wordmark, lockup, favicon.svg)
+  - Direction A and C archived to `architecture/brand-explorations/archive/`
+  - Math-verified all contrast ratios — AAA on all body text, dark accent gated to fill-only with `--accent-strong` for text use
 
 ## Not Started (next sprint — Lobi divergence layer)
 Specs to be written/refined:

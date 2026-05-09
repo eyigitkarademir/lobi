@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Lobi — Direction B — Weather card</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --bg-page: #F4F4F2;
+    --bg-card: #FFFFFF;
+    --bg-card-hover: #F0F0EE;
+    --border-subtle: #E2E2DF;
+    --border-strong: #1A1A18;
+    --text-primary: #0E0E0C;
+    --text-secondary: #4A4A47;
+    --text-tertiary: #7E7E7A;
+    --accent: #7C2233;
+    --accent-hover: #601926;
+    --accent-fg: #FFFFFF;
+  }
+  html, body {
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-family: ui-sans-serif, system-ui, "Geist Sans", "Inter", sans-serif;
+    letter-spacing: 0;
+  }
+  .serif {
+    font-family: ui-serif, "Tiempos Headline", "Charter", "Iowan Old Style", Georgia, serif;
+    letter-spacing: -0.024em;
+  }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;            /* editorial — sharper than A/C */
+    transition: border-color 120ms ease, background 120ms ease;
+  }
+  .card:hover { border-color: var(--border-strong); }
+  .kicker {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--text-tertiary);
+  }
+  .rule { height: 1px; background: var(--border-subtle); }
+  .rule-strong { height: 2px; background: var(--border-strong); }
+  .row { transition: background 120ms ease; }
+  .row:hover { background: rgba(14,14,12,0.035); }
+  .row:hover .row-temp { color: var(--accent); }
+  .accent-rule { height: 2px; background: var(--accent); }
+</style>
+</head>
+<body class="min-h-screen p-10">
+
+  <div class="max-w-[440px]">
+    <!-- Card -->
+    <article class="card p-6">
+
+      <!-- Strong top rule (masthead) -->
+      <div class="rule-strong mb-4"></div>
+
+      <!-- Kicker + section -->
+      <div class="flex items-baseline justify-between mb-3">
+        <span class="kicker">Weather · Istanbul</span>
+        <span class="kicker tabular">10 May, Sat</span>
+      </div>
+
+      <!-- Hero block: editorial display -->
+      <div class="flex items-end justify-between mb-1">
+        <div>
+          <div class="serif text-[44px] leading-none tabular" style="color:var(--text-primary)">17°</div>
+          <div class="text-[14px] mt-2" style="color:var(--text-secondary)">Light cloud, high wind north.</div>
+        </div>
+        <div class="text-right">
+          <div class="kicker mb-1">High / Low</div>
+          <div class="text-[14px] tabular" style="color:var(--text-primary)">19° &nbsp;/&nbsp; 11°</div>
+        </div>
+      </div>
+
+      <!-- Accent rule -->
+      <div class="accent-rule mt-5 mb-5" style="width:48px"></div>
+
+      <!-- Hourly forecast (tabular figures, editorial table) -->
+      <div class="kicker mb-2">Today</div>
+      <ul class="flex flex-col">
+        <li class="row flex items-baseline justify-between py-2 border-b" style="border-color:var(--border-subtle)">
+          <span class="text-[13px] tabular" style="color:var(--text-secondary)">12:00</span>
+          <span class="text-[13px]" style="color:var(--text-primary)">Cloudy</span>
+          <span class="row-temp text-[13px] tabular font-medium" style="color:var(--text-primary)">17°</span>
+        </li>
+        <li class="row flex items-baseline justify-between py-2 border-b" style="border-color:var(--border-subtle)">
+          <span class="text-[13px] tabular" style="color:var(--text-secondary)">15:00</span>
+          <span class="text-[13px]" style="color:var(--text-primary)">Sun, cool</span>
+          <span class="row-temp text-[13px] tabular font-medium" style="color:var(--text-primary)">19°</span>
+        </li>
+        <li class="row flex items-baseline justify-between py-2 border-b" style="border-color:var(--border-subtle)">
+          <span class="text-[13px] tabular" style="color:var(--text-secondary)">18:00</span>
+          <span class="text-[13px]" style="color:var(--text-primary)">Wind picks up</span>
+          <span class="row-temp text-[13px] tabular font-medium" style="color:var(--text-primary)">15°</span>
+        </li>
+        <li class="row flex items-baseline justify-between py-2">
+          <span class="text-[13px] tabular" style="color:var(--text-secondary)">21:00</span>
+          <span class="text-[13px]" style="color:var(--text-primary)">Clear, cold</span>
+          <span class="row-temp text-[13px] tabular font-medium" style="color:var(--text-primary)">12°</span>
+        </li>
+      </ul>
+
+      <!-- Footer / source -->
+      <div class="flex items-baseline justify-between mt-5">
+        <span class="kicker">Source · Open-Meteo</span>
+        <a class="text-[12px] underline underline-offset-4" style="color:var(--accent); text-decoration-thickness:1px">Forecast</a>
+      </div>
+
+    </article>
+
+    <p class="mt-3 kicker">Direction B · Editorial confidence · zinc + ink + oxblood</p>
+  </div>
+
+</body>
+</html>

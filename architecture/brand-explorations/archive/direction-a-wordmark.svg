@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 64" width="220" height="64" role="img" aria-label="Lobi wordmark, direction A">
+  <!-- Custom letterforms for "Lobi". Geist-derived geometry (humanist grotesque),
+       hand-tightened tracking, slight inktrap on the 'b' bowl. All paths, no <text>. -->
+
+  <!-- L : same geometric DNA as the mark, scaled to wordmark height (cap height 36, stem 8) -->
+  <path d="
+    M 6 14
+    L 14 14
+    L 14 42
+    L 36 42
+    L 36 50
+    L 14 50
+    Q 6 50 6 42
+    Z" fill="#1F1A14"/>
+
+  <!-- o : circular bowl, optical inner. Cap height 36 -> x-height 28. Center y=36. -->
+  <path d="
+    M 60 22
+    a 14 14 0 1 0 0.001 0
+    Z
+    M 60 28
+    a 8 8 0 1 1 -0.001 0
+    Z" fill="#1F1A14" fill-rule="evenodd"/>
+
+  <!-- b : ascender stem + lower bowl + bridge. Clean construction (stem-rect + bowl-path + bridge-rect)
+       to avoid the stem-to-bowl tangent kink. Stem x=92..100 y=12..50, bowl center (114,36) outer 14 / inner 8,
+       bridge x=100..106 y=22..36 closes the visual seam between stem and bowl interior. -->
+  <rect x="92" y="12" width="8" height="38" fill="#1F1A14"/>
+  <path d="
+    M 114 22
+    a 14 14 0 1 0 0.001 0
+    Z
+    M 114 28
+    a 8 8 0 1 1 -0.001 0
+    Z" fill="#1F1A14" fill-rule="evenodd"/>
+  <rect x="100" y="22" width="6" height="14" fill="#1F1A14"/>
+
+  <!-- Custom 'i' with a TERRACOTTA tittle — the brand signature.
+       Stem x=140..148 y=22..50. Tittle as offset square-with-rounded-corners at y=10..18. -->
+  <rect x="140" y="22" width="8" height="28" fill="#1F1A14"/>
+  <rect x="140" y="10" width="8" height="8" rx="1.6" fill="#B5532A"/>
+
+  <!-- Right-side breathing space: trailing kerning tick at x=164 (invisible in render, anchors the lockup grid). -->
+</svg>

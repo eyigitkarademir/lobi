@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Lobi mark, direction B">
+  <!-- Editorial mark = a slab-serif "L" inside a strong rule. Wordmark-led brand,
+       so the mark is intentionally secondary: a single solid-rule frame and a
+       confident serif L. No background tile (works on any surface). -->
+
+  <!-- Hairline editorial frame, top + bottom rules only (magazine masthead pattern). -->
+  <rect x="6"  y="8"  width="52" height="2" fill="#0E0E0C"/>
+  <rect x="6"  y="54" width="52" height="2" fill="#0E0E0C"/>
+
+  <!-- Slab-serif L. Constructed from rectangles for crisp paths.
+       Stem: x=22..30, y=14..50 (h=36, stem 8). Foot: x=22..46, y=42..50 (h=8). -->
+  <!-- Top serif (slab) -->
+  <rect x="18" y="14" width="16" height="3" fill="#0E0E0C"/>
+  <!-- Stem -->
+  <rect x="22" y="14" width="8"  height="36" fill="#0E0E0C"/>
+  <!-- Foot horizontal -->
+  <rect x="22" y="42" width="24" height="8"  fill="#0E0E0C"/>
+  <!-- Right serif (slab) on the foot terminal -->
+  <rect x="42" y="38" width="3"  height="16" fill="#0E0E0C"/>
+
+  <!-- Oxblood ink-block on the inside corner — the editorial signature. -->
+  <rect x="32" y="36" width="6" height="6" fill="#7C2233"/>
+</svg>

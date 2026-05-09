@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Lobi mark, direction A">
+  <!-- Background tile: warm bone, rounded square. Optional — remove fill for transparent variant. -->
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#FBF8F2"/>
+
+  <!-- The 'L'. Geometry:
+       - Vertical stem: x=18..28 (width 10), y=14..50 (height 36)
+       - Horizontal foot: x=18..50 (width 32), y=40..50 (height 10)
+       - Tail-curve: small quarter-circle scoop at the inner heel, suggesting a chair leg / soft warmth.
+       Drawn as a single closed path so light/dark variants only need fill swap. -->
+  <path d="
+    M 18 14
+    L 28 14
+    L 28 40
+    L 50 40
+    L 50 50
+    L 28 50
+    Q 18 50 18 40
+    Z"
+    fill="#B5532A"/>
+
+  <!-- Inner accent dot at the heel-curve — the 'warmth' signature.
+       Sits inside the tail-curve, only visible at >=24px. -->
+  <circle cx="22.5" cy="44.5" r="1.6" fill="#FBF8F2"/>
+</svg>

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 64" width="220" height="64" role="img" aria-label="Lobi wordmark, direction C">
+  <!-- Wordmark "Lobi" — friendly modern grotesque (Geist-derived).
+       Soft corners on the L's foot terminal, perfectly circular o.
+       The dot of the i is a small lilac circle — echoes the offset-tile gesture. -->
+
+  <!-- L : friendly grotesque with rounded foot. Stem 8 wide, foot rounded inner corner -->
+  <path d="
+    M 6 14
+    L 14 14
+    L 14 42
+    Q 14 50 22 50
+    L 36 50
+    L 36 42
+    L 22 42
+    L 22 14
+    Z" fill="#1C1A22"/>
+  <!-- Wait — that's the inner shape; better to draw the SOLID L: -->
+  <!-- Replace with full solid L -->
+  <rect x="6" y="14" width="8" height="36" fill="#1C1A22"/>
+  <rect x="6" y="42" width="30" height="8" rx="0" fill="#1C1A22"/>
+  <!-- Soften top-left & bottom-right outer corners with small radius via masking-free overlays.
+       Simpler: stick with the rect duo above; the friendliness comes from the o and i, not the L. -->
+
+  <!-- o : circular bowl (perfectly round = friendly), center (60, 36), outer r=14, inner r=8 -->
+  <path d="
+    M 60 22
+    a 14 14 0 1 0 0.001 0
+    Z
+    M 60 28
+    a 8 8 0 1 1 -0.001 0
+    Z" fill="#1C1A22" fill-rule="evenodd"/>
+
+  <!-- b : rounded grotesque. Stem x=92..100 y=12..50. Bowl center (114, 36) outer 14 inner 8. -->
+  <rect x="92" y="12" width="8" height="38" fill="#1C1A22"/>
+  <path d="
+    M 114 22
+    a 14 14 0 1 0 0.001 0
+    Z
+    M 114 28
+    a 8 8 0 1 1 -0.001 0
+    Z" fill="#1C1A22" fill-rule="evenodd"/>
+  <!-- Bridge stem to bowl -->
+  <rect x="100" y="22" width="6" height="14" fill="#1C1A22"/>
+
+  <!-- i : stem in ink, dot in LILAC (brand signature, echoes the offset tile) -->
+  <rect x="140" y="22" width="8" height="28" rx="0" fill="#1C1A22"/>
+  <circle cx="144" cy="14" r="4.5" fill="#9B7FB8"/>
+</svg>

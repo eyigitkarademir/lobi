@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Lobi mark, direction C">
+  <!-- Abstract widget-grid mark: 2x2 bento with one tile shifted out of alignment.
+       The shifted tile is the lilac accent — the "you arranged this yourself" gesture.
+       Geometry:
+         - 4 tiles, each 22x22, gap 4
+         - tile positions on a 48x48 grid centered at (32,32)
+         - top-left:    (8, 8)
+         - top-right:   (34, 8)
+         - bottom-left: (8, 34)
+         - bottom-right: shifted +4,-3  -> (38, 31)  (the playful offset)
+       Corner radius 5 on every tile — consistent geometry.
+  -->
+
+  <!-- Top-left tile, ink -->
+  <rect x="8"  y="8"  width="22" height="22" rx="5" fill="#1C1A22"/>
+  <!-- Top-right tile, ink -->
+  <rect x="34" y="8"  width="22" height="22" rx="5" fill="#1C1A22"/>
+  <!-- Bottom-left tile, ink -->
+  <rect x="8"  y="34" width="22" height="22" rx="5" fill="#1C1A22"/>
+
+  <!-- Bottom-right tile, SHIFTED + LILAC. This is the brand gesture. -->
+  <rect x="38" y="31" width="22" height="22" rx="5" fill="#9B7FB8"/>
+</svg>
